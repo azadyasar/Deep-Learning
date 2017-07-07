@@ -153,7 +153,7 @@ class Network:
         self.sess.run(init)
         if contd == True:
             print("Restoring paramaters before training..")
-            saver = tf.train.Saver(tf.trainable_variables())
+            saver = tf.train.Saver()
             saver.restore(self.sess, self.path_to_models)
             # graph = tf.get_default_graph()
             # test_pop_mean = graph.get_tensor_by_name("ConvLayer2_2/ConvLayer2/pop_mean:0")
@@ -165,7 +165,7 @@ class Network:
 
         graph = tf.get_default_graph()
 
-        saver = tf.train.Saver(tf.trainable_variables())
+        saver = tf.train.Saver()
         saver.save(self.sess, self.path_to_models)
 
         self.sess.close()
@@ -270,8 +270,8 @@ class Network:
             bar_coeff =  21./total_batch_num
             acc_over_batch = 0.
             cost_over_batch = 0.
-            for start, end in zip(range(0, len(self.trainImagePaths)-21000, self.batch_size), 
-                                    range(self.batch_size, len(self.trainImagePaths)-21000, self.batch_size)):
+            for start, end in zip(range(0, len(self.trainImagePaths), self.batch_size), 
+                                    range(self.batch_size, len(self.trainImagePaths), self.batch_size)):
                 progress = int(start/self.batch_size)
                 info = "[INFO] Batch #{0}/{1}".format(progress, total_batch_num)
                 batch_imagePaths = self.trainImagePaths[start:end]
@@ -296,7 +296,7 @@ class Network:
                     info += ", Cost: {0:2.4f}".format(cost_b)
                     info += ", w/ reg: {0:2.4f}".format(cost_rb)
                     print(info, end="\r")
-            saver = tf.train.Saver(tf.trainable_variables())
+            saver = tf.train.Saver()
             saver.save(self.sess, self.path_to_models)
             acc_his.append(acc_over_batch)
             cost_his.append(cost_over_batch)
@@ -339,7 +339,7 @@ class Network:
 
         sess = tf.Session()
         sess.run(tf.global_variables_initializer())
-        saver = tf.train.Saver(tf.trainable_variables())
+        saver = tf.train.Saver()
         saver.restore(sess, self.path_to_models)
         graph = tf.get_default_graph()
         # graph = tf.get_default_graph()
