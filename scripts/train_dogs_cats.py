@@ -15,9 +15,9 @@ import pylab
 ## Paths
 
 log_path = "/tmp/tensorflow/log/"
-path_to_train_images = "/home/azad/Documents/WorkSpaces/Python_WS/Neural_Networks/Neural_Networks/datasets/dogs_cats/train"
-path_to_test_images = "/home/azad/Documents/WorkSpaces/Python_WS/Neural_Networks/Neural_Networks/datasets/dogs_cats/test"
-path_to_models = "/home/azad/Documents/WorkSpaces/Python_WS/Neural_Networks/Neural_Networks/datasets/dogs_cats/models/"
+path_to_train_images = "/home/ec2-user/data/train"
+path_to_test_images = "/home/ec2-user/data/test"
+path_to_models = "/home/ec2-user/models/"
 
 ## TODO Convert network configurations into a dict. Integrate batch normalization into the network
 
@@ -189,8 +189,8 @@ class Network:
                                                 "filter_size":self.filter_size, "num_filters":self.num_filters2, 
                                                 "scope":"ConvLayer2", "init_method":"heinit",
                                                 "is_training":is_training}, use_pooling=True)
-        with tf.variable_scope("Conv2_Dropout"):
-            layer_conv2 = tf.nn.dropout(layer_conv2, keep_prob)
+        #with tf.variable_scope("Conv2_Dropout"):
+            #layer_conv2 = tf.nn.dropout(layer_conv2, keep_prob)
 
         print("Constructed ", layer_conv2)
         
@@ -198,16 +198,16 @@ class Network:
                                                 "filter_size":self.filter_size,"num_filters":self.num_filters3, 
                                                 "scope":"ConvLayer3", "init_method":"heinit", 
                                                 "is_training":is_training},  use_pooling=False)
-        with tf.variable_scope("Conv3_Dropout"):
-            layer_conv3 = tf.nn.dropout(layer_conv3, keep_prob)
+        #with tf.variable_scope("Conv3_Dropout"):
+         #   layer_conv3 = tf.nn.dropout(layer_conv3, keep_prob)
         print("Constructed ", layer_conv3)
         
         layer_conv4, weights = self.new_conv_layer(input=layer_conv3, config={"num_input_channels":self.num_filters3, 
                                               "filter_size":self.filter_size,"num_filters":self.num_filters4, 
                                               "scope":"ConvLayer4", "init_method":"normal", 
                                               "is_training":is_training}, use_pooling=True)
-        with tf.variable_scope("Conv4_Droppout"):
-            layer_conv4 = tf.nn.dropout(layer_conv4, keep_prob)
+        #with tf.variable_scope("Conv4_Droppout"):
+         #   layer_conv4 = tf.nn.dropout(layer_conv4, keep_prob)
 
 
         layer_flat, self.num_features = Network.flatten_layer(layer_conv4, scope="Flatten")

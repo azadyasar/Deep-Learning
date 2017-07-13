@@ -11,19 +11,21 @@ ap = argparse.ArgumentParser()
 # args = vars(ap.parse_args)
 
 # print(args["dataset"])
-train_data_dir = "/home/azad/Documents/WorkSpaces/Python_WS/Neural_Networks/Neural_Networks/datasets/dogs_cats/split_train/"
+train_data_dir = "/home/ec2-user/data/train_split"
 
 img_width, img_height = 64, 64
-nb_train_samples = 20000
+nb_train_samples = 22000
 epochs = 15
 batch_size = 128
-if K.image_data_format() == 'channel_first':
+'''
+if K.image_dim_ordering() == 'channel_first':
   print("Channel first")
   input_shape = (3, img_width, img_height)
 else:
   print("Channel last")
   input_shape = (img_width, img_height, 3)
-
+'''
+input_shape = (img_width, img_height, 3)
 print("Input shape: {0}".format(input_shape))
 
 model = Sequential()
