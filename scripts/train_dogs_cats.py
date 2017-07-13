@@ -15,9 +15,9 @@ import pylab
 ## Paths
 
 log_path = "/tmp/tensorflow/log/"
-path_to_train_images = "/Users/ay/Documents/WorkSpace/Python_Workspace/Neural_Networks/datasets/dogs_cats/train"
-path_to_test_images = "/Users/ay/Documents/WorkSpace/Python_Workspace/Neural_Networks/datasets/dogs_cats/test"
-path_to_models = "/Users/ay/Documents/WorkSpace/Python_Workspace/Neural_Networks/cats_dogs_ws/models/"
+path_to_train_images = "/home/azad/Documents/WorkSpaces/Python_WS/Neural_Networks/Neural_Networks/datasets/dogs_cats/train"
+path_to_test_images = "/home/azad/Documents/WorkSpaces/Python_WS/Neural_Networks/Neural_Networks/datasets/dogs_cats/test"
+path_to_models = "/home/azad/Documents/WorkSpaces/Python_WS/Neural_Networks/Neural_Networks/datasets/dogs_cats/models/"
 
 ## TODO Convert network configurations into a dict. Integrate batch normalization into the network
 
@@ -273,7 +273,7 @@ class Network:
             for start, end in zip(range(0, len(self.trainImagePaths), self.batch_size), 
                                     range(self.batch_size, len(self.trainImagePaths), self.batch_size)):
                 progress = int(start/self.batch_size)
-                info = "[INFO] Batch #{0}/{1}".format(progress, total_batch_num)
+                info = "[INFO] Batch #{0}/{1}".format(progress+1, total_batch_num)
                 batch_imagePaths = self.trainImagePaths[start:end]
                 (data, labels) = Network.getImagesLabels(self.img_size, batch_imagePaths)
                 if data.shape[0] == 0:
