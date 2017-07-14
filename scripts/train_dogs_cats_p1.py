@@ -15,9 +15,9 @@ import pylab
 ## Paths
 
 log_path = "/tmp/tensorflow/log/"
-path_to_train_images = "/home/azad/Documents/WorkSpaces/Python_WS/Neural_Networks/Neural_Networks/datasets/dogs_cats/train"
-path_to_test_images = "/home/azad/Documents/WorkSpaces/Python_WS/Neural_Networks/Neural_Networks/datasets/dogs_cats/test"
-path_to_models = "/home/azad/Documents/WorkSpaces/Python_WS/Neural_Networks/Neural_Networks/datasets/dogs_cats/models/"
+path_to_train_images = "path_to_train_images"
+path_to_test_images = "path_to_test_images"
+path_to_models = "path_to_models"
 
 ## TODO Convert network configurations into a dict. Integrate batch normalization into the network
 
@@ -30,8 +30,10 @@ class Network:
         self.filter_size = 3
         self.num_filters1 = 16
         self.num_filters2 = 32
-        self.num_filters3 = 32
-        self.num_filters4 = 16
+        self.num_filters3 = 64
+        self.num_filters4 = 32
+        self.num_filters5 = 16
+        self.num_filters6 = 16
         self.fc_size1 = 1024
         self.fc_size2 = 512
         self.dropout_probability = 0.6
@@ -43,8 +45,8 @@ class Network:
 
         imagePaths = list(paths.list_images(path_dict['train']))
         self.testImagePaths = list(paths.list_images(path_dict['test']))
-        shuffle(imagePaths)
         shuffle(self.testImagePaths)
+        shuffle(imagePaths)
         print("# of images: {0}".format(len(imagePaths)))
         print("# of test images: %d " % len(self.testImagePaths))
 
@@ -180,22 +182,24 @@ class Network:
         y_true_class_encoder = tf.argmax(y_, axis=1)
         keep_prob = tf.placeholder(tf.float32, name="keep_prob_dropout")
         # Layers
+
+        #### Layer 1
         layer_conv1, weights = self.new_conv_layer(input=x_, config={"num_input_channels":self.num_channels, 
                                                 "filter_size":self.filter_size, "num_filters":self.num_filters1, 
                                                 "scope":"ConvLayer1", "init_method":"heinit", 
                                                 "is_training":is_training}, use_pooling=False)
-
         print("Constructed ", layer_conv1)
         
+        #### Layer 2
         layer_conv2, weights = self.new_conv_layer(input=layer_conv1, config={"num_input_channels":self.num_filters1, 
                                                 "filter_size":self.filter_size, "num_filters":self.num_filters2, 
                                                 "scope":"ConvLayer2", "init_method":"heinit",
                                                 "is_training":is_training}, use_pooling=True)
         #with tf.variable_scope("Conv2_Dropout"):
             #layer_conv2 = tf.nn.dropout(layer_conv2, keep_prob)
-
         print("Constructed ", layer_conv2)
         
+        #### Layer 3
         layer_conv3, weights = self.new_conv_layer(input=layer_conv2, config={"num_input_channels":self.num_filters2, 
                                                 "filter_size":self.filter_size,"num_filters":self.num_filters3, 
                                                 "scope":"ConvLayer3", "init_method":"heinit", 
@@ -204,15 +208,31 @@ class Network:
             layer_conv3 = tf.nn.dropout(layer_conv3, keep_prob)
         print("Constructed ", layer_conv3)
         
+        #### Layer 4
         layer_conv4, weights = self.new_conv_layer(input=layer_conv3, config={"num_input_channels":self.num_filters3, 
                                               "filter_size":self.filter_size,"num_filters":self.num_filters4, 
-                                              "scope":"ConvLayer4", "init_method":"normal", 
+                                              "scope":"ConvLayer4", "init_method":"heinit", 
                                               "is_training":is_training}, use_pooling=True)
         #with tf.variable_scope("Conv4_Droppout"):
          #   layer_conv4 = tf.nn.dropout(layer_conv4, keep_prob)
+        print("Constructed ", layer_conv4)
 
+        #### Layer 5
+        layer_conv5, weights = self.new_conv_layer(input=layer_conv4, config={"num_input_channels":self.num_filters4,
+                                                "filter_size":self.filter_size, "num_filters":self.num_filters5,
+                                                "scope":"ConvLayer5", "init_method": "heinit"})
 
-        layer_flat, self.num_features = Network.flatten_layer(layer_conv4, scope="Flatten")
+        with tf.variable_scope("Conv5_Dropout"):
+            layer_conv5 = tf.nn.dropout(layer_conv5, keep_prob)
+        print("Constructed ", layer_conv5)
+
+        #### Layer 6
+        layer_conv6, weights = self.new_conv_layer(input=layer_conv5, config={"num_input_channels":self.num_filters5,
+                                                "filter_size":self.filter_size, "num_filters":self.num_filters6,
+                                                "scope":"ConvLayer6", "init_method": "heinit"})
+        print("Constructed ", layer_conv6)
+
+        layer_flat, self.num_features = Network.flatten_layer(layer_conv6, scope="Flatten")
         # layer_flat, num_features = flatten_layer(x_)
         print("Number of features before FCs ", self.num_features)
 
@@ -355,46 +375,38 @@ class Network:
         # acc, yp = sess.run([accuracy, y_pred], feed_dict={x_:data, y_:labels_mat, dropout_prob:1})
         test_image_counter = 0
         acc_total = 0
-        test_batch_size = 300
-        if labels.shape[0] > test_batch_size:
-            for (start, end) in zip(range(0, labels.shape[0]+1, test_batch_size), 
-                                    range(test_batch_size, labels.shape[0]+1, test_batch_size)):
+        if labels.shape[0] > 50:
+            for (start, end) in zip(range(0, labels.shape[0], 50), 
+                                    range(50, labels.shape[0], 50)):
                 batch_data = data[start:end]
                 batch_labels = labels[start:end]
                 batch_labels_mat = Network.convert_to_categorical(batch_labels, self.num_classes)
                 acc, yp = sess.run([accuracy, y_pred], feed_dict={x_:batch_data, y_:batch_labels_mat, 
                                                             dropout_prob:1.})
                 print("Test ex {0}-{1}: {2:1.4f}".format(start, end, acc))
-                test_image_counter += test_batch_size
+                test_image_counter += 50
                 acc_total += acc
             batch_data = data[test_image_counter:]
             batch_labels = labels[test_image_counter:]
             batch_labels_mat = Network.convert_to_categorical(batch_labels, self.num_classes)
             acc, yp = sess.run([accuracy, y_pred], feed_dict={x_:batch_data, y_:batch_labels_mat, 
                                                             dropout_prob:1.})
-            acc_avg = acc_total / (labels.shape[0] // test_batch_size)
+            acc_avg = acc_total / (labels.shape[0]/50)
             print("Average accuracy: {0:.4f}".format(acc_avg))
-        true_counter = 0
+
         for imagePath in self.testImagePaths:
             image_orig = cv2.imread(imagePath)
             image = cv2.resize(image_orig, dsize=(self.img_size, self.img_size))
             image = np.expand_dims(image, axis=0)
             result = sess.run(y_pred, feed_dict={x_:image, dropout_prob:1})
-            label_str = imagePath.split(os.path.sep)[-1].split(".")[0]
-            result_label = ""
-            print(".", end="")
             if result[0,0] > result[0,1]:
-                # cv2.imshow('Cat', image_orig)
-                result_label = "cat"
+                print("Cat")
             else:
-                # cv2.imshow('Dog', image_orig)
-                result_label = "dog"
-            if result_label == label_str.lower():
-                true_counter += 1
-            # print("Probs: {0}".format(result))
-            # k = cv2.waitKey(0) & 0xFF
-            # cv2.destroyAllWindows()
-        print("\nAcc: {0:0.5f}".format(true_counter/labels.shape[0]))
+                print("Dog")
+            print("Probs: {0}".format(result))
+            cv2.imshow('image', image_orig)
+            k = cv2.waitKey(0) & 0xFF
+            cv2.destroyAllWindows()
         print(result.shape)
 
     def get_fans(shape):
@@ -421,7 +433,7 @@ class Network:
 
     # if isconv is true axes=[0,1,2] is applied to tf.nn.moments for convolutional layer, otherwise [0] 
     def batch_norm_wrapper(inputs, scope, is_training, isconv, decay=0.999):
-        with tf.variable_scope(scope, reuse=True):
+        with tf.variable_scope(scope):
             gamma = tf.Variable(tf.ones([inputs.get_shape()[-1]]), name="gamma")
             beta = tf.Variable(tf.zeros([inputs.get_shape()[-1]]), name="beta")
             pop_mean = tf.Variable(tf.zeros([inputs.get_shape()[-1]]), name="pop_mean", trainable=False)
