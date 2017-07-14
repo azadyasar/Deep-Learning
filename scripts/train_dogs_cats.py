@@ -421,25 +421,26 @@ class Network:
 
     # if isconv is true axes=[0,1,2] is applied to tf.nn.moments for convolutional layer, otherwise [0] 
     def batch_norm_wrapper(inputs, scope, is_training, isconv, decay=0.999):
-        with tf.variable_scope(scope, reuse=True):
-            gamma = tf.Variable(tf.ones([inputs.get_shape()[-1]]), name="gamma")
-            beta = tf.Variable(tf.zeros([inputs.get_shape()[-1]]), name="beta")
-            pop_mean = tf.Variable(tf.zeros([inputs.get_shape()[-1]]), name="pop_mean", trainable=False)
-            pop_var = tf.Variable(tf.ones([inputs.get_shape()[-1]]), name="pop_var", trainable=False)
-            epsilon = 1e-4
-            if is_training:
-                if isconv:
-                    batch_mean, batch_var = tf.nn.moments(inputs, axes=[0,1,2])
-                else:
-                    batch_mean, batch_var = tf.nn.moments(inputs, axes=[0])
-                train_mean = tf.assign(pop_mean, pop_mean * decay + batch_mean * (1 - decay))
-                train_var = tf.assign(pop_var, pop_var * decay + batch_var * (1 - decay))
-                with tf.control_dependencies([train_mean, train_var]):
-                    print("Giving training mean, var to BN")
-                    return tf.nn.batch_normalization(inputs, batch_mean, batch_var, beta, gamma, epsilon, name="BN")
-            else:
-                print("Giving pop_mean mean, var to BN")
-                return tf.nn.batch_normalization(inputs, pop_mean, pop_var, beta, gamma, epsilon, name="PopBN")
+        # with tf.variable_scope(scope, reuse=True):
+        return tf.contrib.layers.batch_norm(inputs, center=True, scale=True, is_training=is_training, scope=scope)
+            # gamma = tf.Variable(tf.ones([inputs.get_shape()[-1]]), name="gamma")
+            # beta = tf.Variable(tf.zeros([inputs.get_shape()[-1]]), name="beta")
+            # pop_mean = tf.Variable(tf.zeros([inputs.get_shape()[-1]]), name="pop_mean", trainable=False)
+            # pop_var = tf.Variable(tf.ones([inputs.get_shape()[-1]]), name="pop_var", trainable=False)
+            # epsilon = 1e-4
+            # if is_training:
+            #     if isconv:
+            #         batch_mean, batch_var = tf.nn.moments(inputs, axes=[0,1,2])
+            #     else:
+            #         batch_mean, batch_var = tf.nn.moments(inputs, axes=[0])
+            #     train_mean = tf.assign(pop_mean, pop_mean * decay + batch_mean * (1 - decay))
+            #     train_var = tf.assign(pop_var, pop_var * decay + batch_var * (1 - decay))
+            #     with tf.control_dependencies([train_mean, train_var]):
+            #         print("Giving training mean, var to BN")
+            #         return tf.nn.batch_normalization(inputs, batch_mean, batch_var, beta, gamma, epsilon, name="BN")
+            # else:
+            #     print("Giving pop_mean mean, var to BN")
+            #     return tf.nn.batch_normalization(inputs, pop_mean, pop_var, beta, gamma, epsilon, name="PopBN")
 
 
     def flatten_layer(layer, scope):
