@@ -63,12 +63,13 @@ class Network:
             "Batch Size: {3}".format(self.learning_rate, self.use_batchnorm, self.num_epochs, self.batch_size))
 
     def parse_arguments(self):
-        ap = argparse.ArgumentParser()
-        ap.add_argument("-lr", "--learningrate", required=False, type=float)
-        ap.add_argument("-ur", "--usereg", required=False, type=int, help="Flag to use regularizer")
-        ap.add_argument("-ubn", "--usebatchnorm", required=False, type=int, help="Flag to use batch norm")
-        ap.add_argument("-epnum", "--numepochs", required=False, type=int, help="Number of epochs to train")
-        args = vars(ap.parse_args())
+        self.ap = argparse.ArgumentParser()
+        self.ap.add_argument("-lr", "--learningrate", required=False, type=float)
+        self.ap.add_argument("-ur", "--usereg", required=False, type=int, help="Flag to use regularizer")
+        self.ap.add_argument("-ubn", "--usebatchnorm", required=False, type=int, help="Flag to use batch norm")
+        self.ap.add_argument("-epnum", "--numepochs", required=False, type=int, help="Number of epochs to train")
+        self.ap.add_argument("-istr", "--istraining", required=False, type=int)
+        args = vars(self.ap.parse_args())
 
         if args["learningrate"] != None:
             self.learning_rate = args["learningrate"]
@@ -198,8 +199,8 @@ class Network:
                                                 "filter_size":self.filter_size,"num_filters":self.num_filters3, 
                                                 "scope":"ConvLayer3", "init_method":"heinit", 
                                                 "is_training":is_training},  use_pooling=False)
-        #with tf.variable_scope("Conv3_Dropout"):
-         #   layer_conv3 = tf.nn.dropout(layer_conv3, keep_prob)
+        with tf.variable_scope("Conv3_Dropout"):
+            layer_conv3 = tf.nn.dropout(layer_conv3, keep_prob)
         print("Constructed ", layer_conv3)
         
         layer_conv4, weights = self.new_conv_layer(input=layer_conv3, config={"num_input_channels":self.num_filters3, 
@@ -247,7 +248,7 @@ class Network:
 
         global_step = tf.Variable(0., trainable=False)
         decay_learning_rate = tf.train.exponential_decay(self.learning_rate, global_step,
-                                                    75, 0.96, staircase=False)
+                                                    125, 0.96, staircase=False)
 
         optimizer = tf.train.RMSPropOptimizer(learning_rate=decay_learning_rate).minimize(cost_reg, global_step=global_step)
 
@@ -290,6 +291,7 @@ class Network:
                     cost_over_batch /= total_batch_num
                     info += "(Overall) Acc: {0:2.4%}".format(acc_over_batch)
                     info += ", Cost: {0:2.4f}".format(cost_over_batch)
+                    info += " " * 6
                     print(info)
                 else:
                     info += "Acc: {0:2.4%}".format(acc_b)
@@ -436,8 +438,17 @@ if __name__ == '__main__':
     path_dict['test'] = path_to_test_images
     path_dict['models'] = path_to_models
     network = Network(path_dict)
-    network.train_network(contd=False)
-
+    
+    is_training = 1
+    args = vars(network.ap.parse_args())
+    if args["istraining"] != None:
+        is_training = args["istraining"]
+    if is_training:
+        print("Starting training..")
+        network.train_network(contd=True)
+    else:
+        print("Starting testing..")
+        network.test_network()
 # print("Start time: ", datetime.datetime.now().time())
 
 
