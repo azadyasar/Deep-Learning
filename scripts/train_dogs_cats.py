@@ -284,7 +284,7 @@ class Network:
                 if data.shape[0] == 0:
                     continue
                 labels_mat = Network.convert_to_categorical(labels, self.num_classes)
-                feed_dict = {self.x_ : data, self.y_ : labels_mat, self.dropout_prob : self.dropout_probability, self.is_training_pc:True}
+                feed_dict = {self.x_ : data, self.y_ : labels_mat, self.dropout_prob : self.dropout_probability}
                 self.sess.run(self.train_step, feed_dict=feed_dict)
                 info += "[" + "=" * int(progress * bar_coeff) + ">" + "-" * int((total_batch_num - progress)*bar_coeff) + "] "
                 acc_b, cost_b, cost_rb = self.sess.run([self.accuracy, self.cost, self.cost_r], feed_dict=feed_dict)
@@ -338,7 +338,7 @@ class Network:
         data = np.array(data) / 255.0
         print("Validation accuracy: {0:.4%}".format(self.sess.run(self.accuracy, 
                                                     feed_dict={self.x_:data, self.y_:labels_mat, 
-                                                    self.dropout_prob:1., self.is_training_pc:False})))
+                                                    self.dropout_prob:1.})))
 
     def test_network(self):
         (x_, y_), _, accuracy, y_pred, _ , dcl, _, dropout_prob = self.build_graph(is_training=False)
@@ -366,7 +366,7 @@ class Network:
                 batch_labels = labels[start:end]
                 batch_labels_mat = Network.convert_to_categorical(batch_labels, self.num_classes)
                 acc, yp = sess.run([accuracy, y_pred], feed_dict={x_:batch_data, y_:batch_labels_mat, 
-                                                            dropout_prob:1., self.is_training_pc:False})
+                                                            dropout_prob:1.})
                 print("Test ex {0}-{1}: {2:1.4f}".format(start, end, acc))
                 test_image_counter += test_batch_size
                 acc_total += acc
@@ -374,7 +374,7 @@ class Network:
             batch_labels = labels[test_image_counter:]
             batch_labels_mat = Network.convert_to_categorical(batch_labels, self.num_classes)
             acc, yp = sess.run([accuracy, y_pred], feed_dict={x_:batch_data, y_:batch_labels_mat, 
-                                                            dropout_prob:1., self.is_training_pc:False})
+                                                            dropout_prob:1.})
             acc_avg = acc_total / (labels.shape[0] // test_batch_size)
             print("Average accuracy: {0:.4f}".format(acc_avg))
         true_counter = 0
