@@ -15,9 +15,9 @@ import pylab
 ## Paths
 
 log_path = "/tmp/tensorflow/log/"
-path_to_train_images = "/home/ec2-user/data/train/"
-path_to_test_images = "/home/ec2-user/data/test"
-path_to_models = "/home/ec2-user/models/"
+path_to_train_images = "/Users/ay/Documents/WorkSpace/Python_Workspace/Neural_Networks/datasets/dogs_cats/train/"
+path_to_test_images = "/Users/ay/Documents/WorkSpace/Python_Workspace/Neural_Networks/datasets/dogs_cats/test"
+path_to_models = "/Users/ay/Documents/WorkSpace/Python_Workspace/Neural_Networks/datasets/dogs_cats/models/"
 
 ## TODO Convert network configurations into a dict. Integrate batch normalization into the network
 
@@ -179,7 +179,7 @@ class Network:
         y_ = tf.placeholder(tf.float32, shape=[None, self.num_classes], name='y-labels')
         y_true_class_encoder = tf.argmax(y_, axis=1)
         keep_prob = tf.placeholder(tf.float32, name="keep_prob_dropout")
-        # self.is_training_pc = tf.placeholder(tf.bool, name="is_training_pc")
+        self.is_training_pc = tf.placeholder(tf.bool, name="is_training_pc")
          # Layers
         layer_conv1, weights = self.new_conv_layer(input=x_, config={"num_input_channels":self.num_channels, 
                                                 "filter_size":self.filter_size, "num_filters":self.num_filters1, 
@@ -284,7 +284,8 @@ class Network:
                 if data.shape[0] == 0:
                     continue
                 labels_mat = Network.convert_to_categorical(labels, self.num_classes)
-                feed_dict = {self.x_ : data, self.y_ : labels_mat, self.dropout_prob : self.dropout_probability}
+                feed_dict = {self.x_ : data, self.y_ : labels_mat, self.dropout_prob : self.dropout_probability,
+                                self.is_training_pc:True}
                 self.sess.run(self.train_step, feed_dict=feed_dict)
                 info += "[" + "=" * int(progress * bar_coeff) + ">" + "-" * int((total_batch_num - progress)*bar_coeff) + "] "
                 acc_b, cost_b, cost_rb = self.sess.run([self.accuracy, self.cost, self.cost_r], feed_dict=feed_dict)
@@ -338,7 +339,7 @@ class Network:
         data = np.array(data) / 255.0
         print("Validation accuracy: {0:.4%}".format(self.sess.run(self.accuracy, 
                                                     feed_dict={self.x_:data, self.y_:labels_mat, 
-                                                    self.dropout_prob:1.})))
+                                                    self.dropout_prob:1., self.is_training_pc:False})))
 
     def test_network(self):
         (x_, y_), _, accuracy, y_pred, _ , dcl, _, dropout_prob = self.build_graph(is_training=False)
@@ -353,7 +354,12 @@ class Network:
         # y_ = graph.get_tensor_by_name("y-labels:0")
         # y_pred = graph.get_tensor_by_name("y-predictions:0")
         # accuracy = graph.get_tensor_by_name("Accuracy:0")
+        print("Variables:")
+        for i in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES):
+            print(i.name)
         (data, labels) = Network.getImagesLabels(self.img_size, self.testImagePaths)
+        test_mean = graph.get_tensor_by_name("ConvLayer1/ConvLayer1/moving_var:0")
+        print(test_mean.eval(session=sess))
         # labels_mat = Network.convert_to_categorical(labels, self.num_classes)
         # acc, yp = sess.run([accuracy, y_pred], feed_dict={x_:data, y_:labels_mat, dropout_prob:1})
         test_image_counter = 0
@@ -366,7 +372,7 @@ class Network:
                 batch_labels = labels[start:end]
                 batch_labels_mat = Network.convert_to_categorical(batch_labels, self.num_classes)
                 acc, yp = sess.run([accuracy, y_pred], feed_dict={x_:batch_data, y_:batch_labels_mat, 
-                                                            dropout_prob:1.})
+                                                            dropout_prob:1., self.is_training_pc:False})
                 print("Test ex {0}-{1}: {2:1.4f}".format(start, end, acc))
                 test_image_counter += test_batch_size
                 acc_total += acc
@@ -374,7 +380,7 @@ class Network:
             batch_labels = labels[test_image_counter:]
             batch_labels_mat = Network.convert_to_categorical(batch_labels, self.num_classes)
             acc, yp = sess.run([accuracy, y_pred], feed_dict={x_:batch_data, y_:batch_labels_mat, 
-                                                            dropout_prob:1.})
+                                                            dropout_prob:1., self.is_training_pc:False})
             acc_avg = acc_total / (labels.shape[0] // test_batch_size)
             print("Average accuracy: {0:.4f}".format(acc_avg))
         true_counter = 0
@@ -382,10 +388,10 @@ class Network:
             image_orig = cv2.imread(imagePath)
             image = cv2.resize(image_orig, dsize=(self.img_size, self.img_size))
             image = np.expand_dims(image, axis=0)
-            result = sess.run(y_pred, feed_dict={x_:image, dropout_prob:1})
+            result = sess.run(y_pred, feed_dict={x_:image, dropout_prob:1, self.is_training_pc:False})
             label_str = imagePath.split(os.path.sep)[-1].split(".")[0]
             result_label = ""
-            print(".", end="")
+            print(".", end=" ")
             if result[0,0] > result[0,1]:
                 # cv2.imshow('Cat', image_orig)
                 result_label = "cat"
@@ -433,23 +439,29 @@ class Network:
             # beta: trainable shift value
             beta = tf.get_variable("beta", shape[-1], initializer=tf.constant_initializer(0.0),
                                         trainable=True)
-            moving_avg = tf.get_variable("moving_avg", shape[-1], initializer=tf.constant_initializer(0.0),
-                                            trainable=False)
-            moving_var = tf.get_variable("moving_var", shape[-1], initializer=tf.constant_initializer(1.0),
-                                            trainable=False)
+            batch_mean, batch_var = tf.nn.moments(inputs, list(range(len(shape) - 1)))
+            ema = tf.train.ExponentialMovingAverage(decay=0.7)
 
-            if is_training:
-                avg, var = tf.nn.moments(inputs, list(range(len(shape) - 1)) )
-                update_moving_avg = moving_avg.assign(moving_avg * decay + avg * (1 - decay))
-                update_moving_var = moving_var.assign(moving_var * decay + var * (1 - decay))
-                control_inputs = [update_moving_avg, update_moving_var]
-            else:
-                avg = moving_avg
-                var = moving_var
-                control_inputs = []
-            with tf.control_dependencies(control_inputs):
-                return tf.nn.batch_normalization(inputs, avg, var, offset=beta, scale=gamma,
-                    variance_epsilon=epsilon)
+            def mean_var_with_update():
+                ema_apply_op = ema.apply([batch_mean, batch_var])
+                with tf.control_dependencies([ema_apply_op]):
+                    return tf.identity(batch_mean, tf.identity(batch_var))
+            mean, var = tf.cond(self.is_training_pc, mean_var_with_update, 
+                                    lambda : (ema.average(batch_mean), ema.average(batch_var)))
+            return tf.nn.batch_normalization(inputs, mean, var, beta, gamma, epsilon)
+
+            # if is_training:
+            #     avg, var = tf.nn.moments(inputs, list(range(len(shape) - 1)) )
+            #     update_moving_avg = moving_avg.assign(moving_avg * decay + avg * (1 - decay))
+            #     update_moving_var = moving_var.assign(moving_var * decay + var * (1 - decay))
+            #     control_inputs = [update_moving_avg, update_moving_var]
+            # else:
+            #     avg = moving_avg
+            #     var = moving_var
+            #     control_inputs = []
+            # with tf.control_dependencies(control_inputs):
+            #     return tf.nn.batch_normalization(inputs, avg, var, offset=beta, scale=gamma,
+            #         variance_epsilon=epsilon)
 
 
         # return tf.contrib.layers.batch_norm(inputs, center=True, scale=True, is_training=is_training,
