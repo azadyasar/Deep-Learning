@@ -179,7 +179,7 @@ class Network:
         y_ = tf.placeholder(tf.float32, shape=[None, self.num_classes], name='y-labels')
         y_true_class_encoder = tf.argmax(y_, axis=1)
         keep_prob = tf.placeholder(tf.float32, name="keep_prob_dropout")
-        self.is_training_pc = tf.placeholder(tf.bool, name="is_training_pc")
+        # self.is_training_pc = tf.placeholder(tf.bool, name="is_training_pc")
          # Layers
         layer_conv1, weights = self.new_conv_layer(input=x_, config={"num_input_channels":self.num_channels, 
                                                 "filter_size":self.filter_size, "num_filters":self.num_filters1, 
@@ -423,10 +423,32 @@ class Network:
 
 
     # if isconv is true axes=[0,1,2] is applied to tf.nn.moments for convolutional layer, otherwise [0] 
-    def batch_norm_wrapper(self, inputs, scope, is_training, isconv, decay=0.999):
-        return tf.cond(self.is_training_pc, 
-            lambda: tf.contrib.layers.batch_norm(inputs, is_training=True, center=False, updates_collections=None, scope=scope),
-            lambda: tf.contrib.layers.batch_norm(inputs, is_training=False, updates_collections=None, center=False, scope=scope, reuse=True))
+    def batch_norm_wrapper(self, inputs, scope, is_training, isconv, decay=0.999, reuse=None):
+        with tf.variable_scope(scope, reuse=reuse):
+            shape = inputs.get_shape().as_list()
+            # gamma: trainable scale factor
+            gamma = tf.get_variable("gamma", shape[-1], initializer=tf.constant_initalizer(1.0), 
+                                        trainable=True)
+            # beta: trainable shift value
+            beta = tf.get_variable("beta", shape[-1], initializer=tf.constant_initalizer(0.0),
+                                        trainable=True)
+            moving_avg = tf.get_variable("moving_avg", shape[-1], initializer=tf.constant_initalizer(0.0),
+                                            trainable=False)
+            moving_var = tf.get_variable("moving_var", shape[-1], initializer=tf.constant_initalizer(1.0),
+                                            trainable=False)
+
+            if is_training:
+                avg, var = tf.nn.moments(inputs, range(len(shape) - 1) )
+                update_moving_avg = moving_avg.assign(moving_avg * decay + avg * (1 - decay))
+                update_moving_var = moving_var.assign(moving_var * decay + var * (1 - decay))
+                control_inputs = [update_moving_avg, update_moving_var]
+            else:
+                avg = moving_avg
+                var = moving_var
+                control_inputs = []
+            with tf.control_dependencies(control_inputs):
+                return tf.nn.batch_normalization(inputs, avg, var, offset=beta, scale=gamma,
+                    variance_epsilon=epsilon)
 
 
         # return tf.contrib.layers.batch_norm(inputs, center=True, scale=True, is_training=is_training,
