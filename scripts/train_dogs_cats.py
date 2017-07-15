@@ -15,9 +15,9 @@ import pylab
 ## Paths
 
 log_path = "/tmp/tensorflow/log/"
-path_to_train_images = "/home/azad/Documents/WorkSpaces/Python_WS/Neural_Networks/Neural_Networks/datasets/dogs_cats/train"
-path_to_test_images = "/home/azad/Documents/WorkSpaces/Python_WS/Neural_Networks/Neural_Networks/datasets/dogs_cats/test"
-path_to_models = "/home/azad/Documents/WorkSpaces/Python_WS/Neural_Networks/Neural_Networks/datasets/dogs_cats/models/"
+path_to_train_images = "/Users/ay/Documents/WorkSpace/Python_Workspace/Neural_Networks/datasets/dogs_cats/train"
+path_to_test_images = "/Users/ay/Documents/WorkSpace/Python_Workspace/Neural_Networks/datasets/dogs_cats/test"
+path_to_models = "/Users/ay/Documents/WorkSpace/Python_Workspace/Neural_Networks/datasets/dogs_cats/models/"
 
 ## TODO Convert network configurations into a dict. Integrate batch normalization into the network
 
@@ -423,8 +423,45 @@ class Network:
 
     # if isconv is true axes=[0,1,2] is applied to tf.nn.moments for convolutional layer, otherwise [0] 
     def batch_norm_wrapper(inputs, scope, is_training, isconv, decay=0.999):
-        return tf.contrib.layers.batch_norm(inputs, center=True, scale=True, is_training=is_training,
-                                                scope=scope)
+        depth = inputs.get_shape()[-1]
+        with tf.variable_scope(scope):
+            pop_mean = tf.Variable(tf.constant(0.0, shape=[depth]), name="pop_mean", trainable=False)
+            pop_var = tf.Variable(tf.constant(1.0, shape=[depth]), name="pop_var", trainable=False)
+            gamma = tf.Variable(tf.constant(1.0, shape=[depth]), name="gamma")
+            beta = tf.Variable(tf.constant(0.0, shape=[depth]), name="beta")
+            ewma_trainer = tf.train.ExponentialMovingAverage(decay=0.99, name="ewma")
+            epsilon = 1e-3
+
+            if is_training:
+                if isconv:
+                    batch_mean, batch_var = tf.nn.moments(inputs, axes=[0, 1, 2])
+                    assign_mean = pop_mean.assign(batch_mean)
+                    assign_variance = pop_var.assign(batch_var)
+                    with tf.control_dependencies([assign_mean, assign_variance]):
+                        with tf.control_dependencies([ewma_trainer.apply([pop_mean, pop_var])]):
+                            return tf.nn.batch_normalization(inputs, 
+                                        batch_mean, batch_var, beta, gamma, epsilon, name="TrainingBN")
+                ## Fully connected
+                else:
+                    batch_mean, batch_var = tf.nn.moments(inputs, axes=[0])
+                    assign_mean = pop_mean.assign(batch_mean)
+                    assign_variance = pop_var.assign(batch_var)
+                    with tf.control_dependencies([assign_mean, assign_variance]):
+                        with tf.control_dependencies([ewma_trainer.apply([pop_mean, pop_var])]):
+                            return tf.nn.batch_normalization(inputs, 
+                                        batch_mean, batch_var, beta, gamma, epsilon, name="TrainingBN")
+            else:
+                mean = ewma_trainer.average(pop_mean)
+                variance = ewma_trainer.average(pop_var)
+                local_beta = tf.identity(beta)
+                local_gamma = tf.identity(gamma)
+                return tf.nn.batch_normalization(inputs, mean, variance, local_beta, local_gamma,
+                                                    epsilon, name="TestPopBN")
+
+
+
+        # return tf.contrib.layers.batch_norm(inputs, center=True, scale=True, is_training=is_training,
+        #                                         scope=scope)
         # with tf.variable_scope(scope, reuse=True):
         #     gamma = tf.Variable(tf.ones([inputs.get_shape()[-1]]), name="gamma")
         #     beta = tf.Variable(tf.zeros([inputs.get_shape()[-1]]), name="beta")
@@ -481,7 +518,7 @@ if __name__ == '__main__':
         is_training = args["istraining"]
     if is_training:
         print("Starting training..")
-        network.train_network(contd=True)
+        network.train_network(contd=False)
     else:
         print("Starting testing..")
         network.test_network()
