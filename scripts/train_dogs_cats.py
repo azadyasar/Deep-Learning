@@ -445,7 +445,7 @@ class Network:
             def mean_var_with_update():
                 ema_apply_op = ema.apply([batch_mean, batch_var])
                 with tf.control_dependencies([ema_apply_op]):
-                    return tf.identity(batch_mean, tf.identity(batch_var))
+                    return tf.identity(batch_mean), tf.identity(batch_var)
             mean, var = tf.cond(self.is_training_pc, mean_var_with_update, 
                                     lambda : (ema.average(batch_mean), ema.average(batch_var)))
             return tf.nn.batch_normalization(inputs, mean, var, beta, gamma, epsilon)
