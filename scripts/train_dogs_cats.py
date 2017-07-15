@@ -425,20 +425,21 @@ class Network:
     # if isconv is true axes=[0,1,2] is applied to tf.nn.moments for convolutional layer, otherwise [0] 
     def batch_norm_wrapper(self, inputs, scope, is_training, isconv, decay=0.999, reuse=None):
         with tf.variable_scope(scope, reuse=reuse):
+            epsilon = 1e-3
             shape = inputs.get_shape().as_list()
             # gamma: trainable scale factor
-            gamma = tf.get_variable("gamma", shape[-1], initializer=tf.constant_initalizer(1.0), 
+            gamma = tf.get_variable("gamma", shape[-1], initializer=tf.constant_initializer(1.0), 
                                         trainable=True)
             # beta: trainable shift value
-            beta = tf.get_variable("beta", shape[-1], initializer=tf.constant_initalizer(0.0),
+            beta = tf.get_variable("beta", shape[-1], initializer=tf.constant_initializer(0.0),
                                         trainable=True)
-            moving_avg = tf.get_variable("moving_avg", shape[-1], initializer=tf.constant_initalizer(0.0),
+            moving_avg = tf.get_variable("moving_avg", shape[-1], initializer=tf.constant_initializer(0.0),
                                             trainable=False)
-            moving_var = tf.get_variable("moving_var", shape[-1], initializer=tf.constant_initalizer(1.0),
+            moving_var = tf.get_variable("moving_var", shape[-1], initializer=tf.constant_initializer(1.0),
                                             trainable=False)
 
             if is_training:
-                avg, var = tf.nn.moments(inputs, range(len(shape) - 1) )
+                avg, var = tf.nn.moments(inputs, list(range(len(shape) - 1)) )
                 update_moving_avg = moving_avg.assign(moving_avg * decay + avg * (1 - decay))
                 update_moving_var = moving_var.assign(moving_var * decay + var * (1 - decay))
                 control_inputs = [update_moving_avg, update_moving_var]
@@ -510,7 +511,7 @@ if __name__ == '__main__':
         is_training = args["istraining"]
     if is_training:
         print("Starting training..")
-        network.train_network(contd=True)
+        network.train_network(contd=False)
     else:
         network.is_training = 1
         print("Starting testing..")
