@@ -258,8 +258,6 @@ class Network:
 
         correct_prediction = tf.equal(y_pred_class, y_true_class_encoder)
         accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32), name="Accuracy")
-        print(accuracy.name)
-        print(x_.name)
         return (x_, y_), optimizer, accuracy, y_pred, cost, decay_learning_rate, cost_reg, keep_prob
 
 
@@ -358,51 +356,57 @@ class Network:
         for i in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES):
             print(i.name)
         (data, labels) = Network.getImagesLabels(self.img_size, self.testImagePaths)
-        test_mean = graph.get_tensor_by_name("ConvLayer1/ConvLayer1/moving_var:0")
-        print(test_mean.eval(session=sess))
+        test_avg = graph.get_tensor_by_name("ConvLayer2/ConvLayer2/ConvLayer2_2/ConvLayer2/moments/normalize/mean/ExponentialMovingAverage:0")
+        print(test_avg.eval(session=sess))
         # labels_mat = Network.convert_to_categorical(labels, self.num_classes)
         # acc, yp = sess.run([accuracy, y_pred], feed_dict={x_:data, y_:labels_mat, dropout_prob:1})
         test_image_counter = 0
         acc_total = 0
-        test_batch_size = 300
-        if labels.shape[0] > test_batch_size:
-            for (start, end) in zip(range(0, labels.shape[0]+1, test_batch_size), 
-                                    range(test_batch_size, labels.shape[0]+1, test_batch_size)):
-                batch_data = data[start:end]
-                batch_labels = labels[start:end]
-                batch_labels_mat = Network.convert_to_categorical(batch_labels, self.num_classes)
-                acc, yp = sess.run([accuracy, y_pred], feed_dict={x_:batch_data, y_:batch_labels_mat, 
-                                                            dropout_prob:1., self.is_training_pc:False})
-                print("Test ex {0}-{1}: {2:1.4f}".format(start, end, acc))
-                test_image_counter += test_batch_size
-                acc_total += acc
-            batch_data = data[test_image_counter:]
-            batch_labels = labels[test_image_counter:]
-            batch_labels_mat = Network.convert_to_categorical(batch_labels, self.num_classes)
-            acc, yp = sess.run([accuracy, y_pred], feed_dict={x_:batch_data, y_:batch_labels_mat, 
-                                                            dropout_prob:1., self.is_training_pc:False})
-            acc_avg = acc_total / (labels.shape[0] // test_batch_size)
-            print("Average accuracy: {0:.4f}".format(acc_avg))
+        test_batch_size = 150
+        # if labels.shape[0] > test_batch_size:
+        #     for (start, end) in zip(range(0, labels.shape[0]+1, test_batch_size), 
+        #                             range(test_batch_size, labels.shape[0]+1, test_batch_size)):
+        #         batch_data = data[start:end]
+        #         batch_labels = labels[start:end]
+        #         batch_labels_mat = Network.convert_to_categorical(batch_labels, self.num_classes)
+        #         acc, yp = sess.run([accuracy, y_pred], feed_dict={x_:batch_data, y_:batch_labels_mat, 
+        #                                                     dropout_prob:1., self.is_training_pc:False})
+        #         print("Test ex {0}-{1}: {2:1.4f}".format(start, end, acc))
+        #         test_image_counter += test_batch_size
+        #         acc_total += acc
+        #     batch_data = data[test_image_counter:]
+        #     batch_labels = labels[test_image_counter:]
+        #     batch_labels_mat = Network.convert_to_categorical(batch_labels, self.num_classes)
+        #     acc, yp = sess.run([accuracy, y_pred], feed_dict={x_:batch_data, y_:batch_labels_mat, 
+        #                                                     dropout_prob:1., self.is_training_pc:False})
+        #     acc_avg = acc_total / (labels.shape[0] // test_batch_size)
+        #     print("Average accuracy: {0:.4f}".format(acc_avg))
         true_counter = 0
+        info = "."
+        counter = 0
         for imagePath in self.testImagePaths:
             image_orig = cv2.imread(imagePath)
             image = cv2.resize(image_orig, dsize=(self.img_size, self.img_size))
+            image = image / 255.
             image = np.expand_dims(image, axis=0)
             result = sess.run(y_pred, feed_dict={x_:image, dropout_prob:1, self.is_training_pc:False})
             label_str = imagePath.split(os.path.sep)[-1].split(".")[0]
             result_label = ""
-            print(".", end=" ")
+            if counter % 50 == 0:
+                info += "."
+            counter += 1
+            print(info, end="\r")
             if result[0,0] > result[0,1]:
-                # cv2.imshow('Cat', image_orig)
+                cv2.imshow('Cat', image_orig)
                 result_label = "cat"
             else:
-                # cv2.imshow('Dog', image_orig)
+                cv2.imshow('Dog', image_orig)
                 result_label = "dog"
             if result_label == label_str.lower():
                 true_counter += 1
-            # print("Probs: {0}".format(result))
-            # k = cv2.waitKey(0) & 0xFF
-            # cv2.destroyAllWindows()
+            print("Probs: {0}".format(result))
+            k = cv2.waitKey(0) & 0xFF
+            cv2.destroyAllWindows()
         print("\nAcc: {0:0.5f}".format(true_counter/labels.shape[0]))
         print(result.shape)
 
@@ -523,7 +527,7 @@ if __name__ == '__main__':
         is_training = args["istraining"]
     if is_training:
         print("Starting training..")
-        network.train_network(contd=False)
+        network.train_network(contd=True)
     else:
         network.is_training = 0
         print("Starting testing..")
