@@ -41,7 +41,7 @@ class Network:
         self.num_classes = 2
         self.learning_rate = 0.01
         self.regularizer_rate = 5e-2
-        self.batch_size = 128
+        self.batch_size = 64
 
 
         imagePaths = list(paths.list_images(path_dict['train']))
@@ -51,7 +51,7 @@ class Network:
         print("# of images: {0}".format(len(imagePaths)))
         print("# of test images: %d " % len(self.testImagePaths))
 
-        valid_size = int(0.05 * len(imagePaths))
+        valid_size = int(0.025 * len(imagePaths))
         trainig_size = len(imagePaths) - valid_size
         print("Training size: {0}, Validation size: {1}".format(trainig_size, valid_size))
         self.valImagePaths = imagePaths[trainig_size:]
@@ -552,7 +552,7 @@ if __name__ == '__main__':
         is_training = args["istraining"]
     if is_training:
         print("Starting training..")
-        network.train_network(contd=False)
+        network.train_network(contd=True)
     else:
         network.is_training = 0
         print("Starting testing..")
