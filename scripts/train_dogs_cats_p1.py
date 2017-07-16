@@ -358,11 +358,24 @@ class Network:
             labels.append(label)
         le = LabelEncoder()
         labels = le.fit_transform(labels)
-        labels_mat = Network.convert_to_categorical(labels, self.num_classes)
         data = np.array(data) / 255.0
-        print("Validation accuracy: {0:.4%}".format(self.sess.run(self.accuracy, 
-                                                    feed_dict={self.x_:data, self.y_:labels_mat, 
-                                                    self.dropout_prob:1., self.is_training_pc:False})))
+        if labels.shape[0] > self.batch_size:
+            acc_total = 0
+            for (start, end) in zip(range(0, labels.shape[0]+1, self.batch_size),
+                                        range(self.batch_size, labels.shape[0]+1, self.batch_size)):
+                batch_data = data[start:end]
+                batch_labels = labels[start:end]
+                batch_labels_mat = Network.convert_to_categorical(batch_labels, self.num_classes)
+                acc = sess.run(self.accuracy, feed_dict={self.x_:batch_data, self.y_:batch_labels_mat,
+                                                            self.dropout_prob:1., self.is_training_pc:False})
+                acc_total += acc
+            acc_avg = acc_total / (labels.shape[0] // self.batch_size)
+            print("Validation accuracy: {0:.4%".format(acc_avg))
+        else:
+            labels_mat = Network.convert_to_categorical(labels, self.num_classes)
+            print("Validation accuracy: {0:.4%}".format(self.sess.run(self.accuracy, 
+                                                        feed_dict={self.x_:data, self.y_:labels_mat, 
+                                                        self.dropout_prob:1., self.is_training_pc:False})))
 
     def test_network(self):
         (x_, y_), _, accuracy, y_pred, _ , dcl, _, dropout_prob = self.build_graph(is_training=False)
