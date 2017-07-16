@@ -218,13 +218,13 @@ class Network:
 
         layer_conv5, weights = self.new_conv_layer(input=layer_conv4, config={"num_input_channels":self.num_filters4, 
                                               "filter_size":self.filter_size,"num_filters":self.num_filters5, 
-                                              "scope":"ConvLayer4", "init_method":"normal", 
+                                              "scope":"ConvLayer5", "init_method":"normal", 
                                               "is_training":is_training}, use_pooling=False)
         print("Constructed ", layer_conv5)
 
         layer_conv6, weights = self.new_conv_layer(input=layer_conv5, config={"num_input_channels":self.num_filters5, 
                                               "filter_size":self.filter_size,"num_filters":self.num_filters6, 
-                                              "scope":"ConvLayer4", "init_method":"normal", 
+                                              "scope":"ConvLayer6", "init_method":"normal", 
                                               "is_training":is_training}, use_pooling=True)
         with tf.variable_scope("Conv6_Dropout"):
             layer_conv6 = tf.nn.dropout(layer_conv6, keep_prob)
@@ -232,7 +232,7 @@ class Network:
 
         layer_conv7, weights = self.new_conv_layer(input=layer_conv6, config={"num_input_channels":self.num_filters6, 
                                               "filter_size":self.filter_size,"num_filters":self.num_filters7, 
-                                              "scope":"ConvLayer4", "init_method":"normal", 
+                                              "scope":"ConvLayer7", "init_method":"normal", 
                                               "is_training":is_training}, use_pooling=False)
         print("Constructed ", layer_conv7)
 
