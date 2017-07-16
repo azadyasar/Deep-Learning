@@ -200,7 +200,7 @@ class Network:
         layer_conv3, weights = self.new_conv_layer(input=layer_conv2, config={"num_input_channels":self.num_filters2, 
                                                 "filter_size":self.filter_size,"num_filters":self.num_filters3, 
                                                 "scope":"ConvLayer3", "init_method":"heinit", 
-                                                "is_training":is_training},  use_pooling=False)
+                                                "is_training":is_training},  use_pooling=True)
         with tf.variable_scope("Conv3_Dropout"):
             layer_conv3 = tf.nn.dropout(layer_conv3, keep_prob)
         print("Constructed ", layer_conv3)
@@ -429,8 +429,8 @@ class Network:
 
 
     # if isconv is true axes=[0,1,2] is applied to tf.nn.moments for convolutional layer, otherwise [0] 
-    def batch_norm_wrapper(self, inputs, scope, is_training, isconv, decay=0.999, reuse=None):
-        with tf.variable_scope(scope, reuse=reuse):
+    def batch_norm_wrapper(self, inputs, scope, is_training, isconv, decay=0.999):
+        with tf.variable_scope(scope):
             epsilon = 1e-3
             shape = inputs.get_shape().as_list()
             # gamma: trainable scale factor
@@ -525,7 +525,7 @@ if __name__ == '__main__':
         print("Starting training..")
         network.train_network(contd=False)
     else:
-        network.is_training = 1
+        network.is_training = 0
         print("Starting testing..")
         network.test_network()
 # print("Start time: ", datetime.datetime.now().time())
