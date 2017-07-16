@@ -211,7 +211,7 @@ class Network:
                                               "is_training":is_training}, use_pooling=True)
         #with tf.variable_scope("Conv4_Droppout"):
          #   layer_conv4 = tf.nn.dropout(layer_conv4, keep_prob)
-
+        print("Constructed ", layer_conv4)
 
         layer_flat, self.num_features = Network.flatten_layer(layer_conv4, scope="Flatten")
         # layer_flat, num_features = flatten_layer(x_)
@@ -223,7 +223,7 @@ class Network:
 
         with tf.variable_scope("FC1_Dropout"):
             layer_fc1 = tf.nn.dropout(layer_fc1, keep_prob)
-
+        print("Constructed ", layer_fc1)
 
         layer_fc2, weights = self.new_fc_layer(input=layer_fc1, config={"num_inputs":self.fc_size1, "num_outputs":self.fc_size2,
                                                 "scope":"FCLayer2", "init_method":"heinit",
@@ -235,8 +235,8 @@ class Network:
         layer_fc3, weights = self.new_fc_layer(input=layer_fc2, config={"num_inputs":self.fc_size2, "num_outputs":self.num_classes,
                                                        "scope":"FCLayer3", "init_method":"heinit",
                                                         "is_training":is_training}, use_relu=False)
-        with tf.variable_scope("FC3_Dropout"):
-            layer_fc3 = tf.nn.dropout(layer_fc3, keep_prob)
+        # with tf.variable_scope("FC3_Dropout"):
+        #     layer_fc3 = tf.nn.dropout(layer_fc3, keep_prob)
 
 
         # Predictions

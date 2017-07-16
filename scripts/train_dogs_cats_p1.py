@@ -15,9 +15,9 @@ import pylab
 ## Paths
 
 log_path = "/tmp/tensorflow/log/"
-path_to_train_images = "path_to_train_images"
-path_to_test_images = "path_to_test_images"
-path_to_models = "path_to_models"
+path_to_train_images = "/home/ec2-user/data/train/"
+path_to_test_images = "/home/ec2-user/data/test"
+path_to_models = "/home/ec2-user/models/"
 
 ## TODO Convert network configurations into a dict. Integrate batch normalization into the network
 
@@ -30,13 +30,14 @@ class Network:
         self.filter_size = 3
         self.num_filters1 = 16
         self.num_filters2 = 32
-        self.num_filters3 = 64
-        self.num_filters4 = 32
-        self.num_filters5 = 16
-        self.num_filters6 = 16
+        self.num_filters3 = 32
+        self.num_filters4 = 64
+        self.num_filters5 = 32
+        self.num_filters6 = 32
+        self.num_filters7 = 16
         self.fc_size1 = 1024
         self.fc_size2 = 512
-        self.dropout_probability = 0.6
+        self.dropout_probability = 0.5
         self.num_classes = 2
         self.learning_rate = 0.01
         self.regularizer_rate = 5e-2
@@ -45,8 +46,8 @@ class Network:
 
         imagePaths = list(paths.list_images(path_dict['train']))
         self.testImagePaths = list(paths.list_images(path_dict['test']))
-        shuffle(self.testImagePaths)
         shuffle(imagePaths)
+        shuffle(self.testImagePaths)
         print("# of images: {0}".format(len(imagePaths)))
         print("# of test images: %d " % len(self.testImagePaths))
 
@@ -124,7 +125,7 @@ class Network:
             layer += biases 
             if self.use_batchnorm is True:
                 print("Applying BN to ", config["scope"])
-                layer = Network.batch_norm_wrapper(inputs=layer, scope=config["scope"], 
+                layer = self.batch_norm_wrapper(inputs=layer, scope=config["scope"], 
                                             is_training=config["is_training"], isconv=True)
 
             layer = tf.nn.relu(layer)
@@ -142,7 +143,7 @@ class Network:
             layer = tf.matmul(input, weights) + biases
             if self.use_batchnorm is True:
                 print("Applying BN to ", config["scope"])
-                layer = Network.batch_norm_wrapper(inputs=layer, scope=config["scope"], 
+                layer = self.batch_norm_wrapper(inputs=layer, scope=config["scope"], 
                                     is_training=config["is_training"], isconv=False)
             if use_relu:
                 layer = tf.nn.relu(layer)
@@ -181,58 +182,62 @@ class Network:
         y_ = tf.placeholder(tf.float32, shape=[None, self.num_classes], name='y-labels')
         y_true_class_encoder = tf.argmax(y_, axis=1)
         keep_prob = tf.placeholder(tf.float32, name="keep_prob_dropout")
-        # Layers
-
-        #### Layer 1
+        self.is_training_pc = tf.placeholder(tf.bool, name="is_training_pc")
+         # Layers
         layer_conv1, weights = self.new_conv_layer(input=x_, config={"num_input_channels":self.num_channels, 
                                                 "filter_size":self.filter_size, "num_filters":self.num_filters1, 
                                                 "scope":"ConvLayer1", "init_method":"heinit", 
                                                 "is_training":is_training}, use_pooling=False)
+
         print("Constructed ", layer_conv1)
         
-        #### Layer 2
         layer_conv2, weights = self.new_conv_layer(input=layer_conv1, config={"num_input_channels":self.num_filters1, 
                                                 "filter_size":self.filter_size, "num_filters":self.num_filters2, 
                                                 "scope":"ConvLayer2", "init_method":"heinit",
-                                                "is_training":is_training}, use_pooling=True)
+                                                "is_training":is_training}, use_pooling=False)
         #with tf.variable_scope("Conv2_Dropout"):
             #layer_conv2 = tf.nn.dropout(layer_conv2, keep_prob)
+
         print("Constructed ", layer_conv2)
         
-        #### Layer 3
         layer_conv3, weights = self.new_conv_layer(input=layer_conv2, config={"num_input_channels":self.num_filters2, 
                                                 "filter_size":self.filter_size,"num_filters":self.num_filters3, 
                                                 "scope":"ConvLayer3", "init_method":"heinit", 
                                                 "is_training":is_training},  use_pooling=False)
-        with tf.variable_scope("Conv3_Dropout"):
-            layer_conv3 = tf.nn.dropout(layer_conv3, keep_prob)
+        # with tf.variable_scope("Conv3_Dropout"):
+        #     layer_conv3 = tf.nn.dropout(layer_conv3, keep_prob)
         print("Constructed ", layer_conv3)
         
-        #### Layer 4
         layer_conv4, weights = self.new_conv_layer(input=layer_conv3, config={"num_input_channels":self.num_filters3, 
                                               "filter_size":self.filter_size,"num_filters":self.num_filters4, 
-                                              "scope":"ConvLayer4", "init_method":"heinit", 
+                                              "scope":"ConvLayer4", "init_method":"normal", 
                                               "is_training":is_training}, use_pooling=True)
-        #with tf.variable_scope("Conv4_Droppout"):
-         #   layer_conv4 = tf.nn.dropout(layer_conv4, keep_prob)
+        with tf.variable_scope("Conv4_Droppout"):
+            layer_conv4 = tf.nn.dropout(layer_conv4, keep_prob)
         print("Constructed ", layer_conv4)
 
-        #### Layer 5
-        layer_conv5, weights = self.new_conv_layer(input=layer_conv4, config={"num_input_channels":self.num_filters4,
-                                                "filter_size":self.filter_size, "num_filters":self.num_filters5,
-                                                "scope":"ConvLayer5", "init_method": "heinit"})
-
-        with tf.variable_scope("Conv5_Dropout"):
-            layer_conv5 = tf.nn.dropout(layer_conv5, keep_prob)
+        layer_conv5, weights = self.new_conv_layer(input=layer_conv4, config={"num_input_channels":self.num_filters4, 
+                                              "filter_size":self.filter_size,"num_filters":self.num_filters5, 
+                                              "scope":"ConvLayer4", "init_method":"normal", 
+                                              "is_training":is_training}, use_pooling=False)
         print("Constructed ", layer_conv5)
 
-        #### Layer 6
-        layer_conv6, weights = self.new_conv_layer(input=layer_conv5, config={"num_input_channels":self.num_filters5,
-                                                "filter_size":self.filter_size, "num_filters":self.num_filters6,
-                                                "scope":"ConvLayer6", "init_method": "heinit"})
+        layer_conv6, weights = self.new_conv_layer(input=layer_conv5, config={"num_input_channels":self.num_filters5, 
+                                              "filter_size":self.filter_size,"num_filters":self.num_filters6, 
+                                              "scope":"ConvLayer4", "init_method":"normal", 
+                                              "is_training":is_training}, use_pooling=True)
+        with tf.variable_scope("Conv6_Dropout"):
+            layer_conv6 = tf.nn.dropout(layer_conv6, keep_prob)
         print("Constructed ", layer_conv6)
 
-        layer_flat, self.num_features = Network.flatten_layer(layer_conv6, scope="Flatten")
+        layer_conv7, weights = self.new_conv_layer(input=layer_conv6, config={"num_input_channels":self.num_filters6, 
+                                              "filter_size":self.filter_size,"num_filters":self.num_filters7, 
+                                              "scope":"ConvLayer4", "init_method":"normal", 
+                                              "is_training":is_training}, use_pooling=False)
+        print("Constructed ", layer_conv7)
+
+
+        layer_flat, self.num_features = Network.flatten_layer(layer_conv7, scope="Flatten")
         # layer_flat, num_features = flatten_layer(x_)
         print("Number of features before FCs ", self.num_features)
 
@@ -242,20 +247,21 @@ class Network:
 
         with tf.variable_scope("FC1_Dropout"):
             layer_fc1 = tf.nn.dropout(layer_fc1, keep_prob)
-
+        print("Constructed ", layer_fc1)
 
         layer_fc2, weights = self.new_fc_layer(input=layer_fc1, config={"num_inputs":self.fc_size1, "num_outputs":self.fc_size2,
                                                 "scope":"FCLayer2", "init_method":"heinit",
                                                  "is_training":is_training}, use_relu=True)
-
         with tf.variable_scope("FC2_Dropout"):
             layer_fc2 = tf.nn.dropout(layer_fc2, keep_prob)
+        print("Constructed ", layer_fc2)
 
         layer_fc3, weights = self.new_fc_layer(input=layer_fc2, config={"num_inputs":self.fc_size2, "num_outputs":self.num_classes,
                                                        "scope":"FCLayer3", "init_method":"heinit",
                                                         "is_training":is_training}, use_relu=False)
-        with tf.variable_scope("FC3_Dropout"):
-            layer_fc3 = tf.nn.dropout(layer_fc3, keep_prob)
+        print("Constructed ", layer_fc3)
+        # with tf.variable_scope("FC3_Dropout"):
+        #     layer_fc3 = tf.nn.dropout(layer_fc3, keep_prob)
 
 
         # Predictions
@@ -271,12 +277,12 @@ class Network:
         decay_learning_rate = tf.train.exponential_decay(self.learning_rate, global_step,
                                                     125, 0.96, staircase=False)
 
-        optimizer = tf.train.RMSPropOptimizer(learning_rate=decay_learning_rate).minimize(cost_reg, global_step=global_step)
+        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        with tf.control_dependencies(update_ops):
+            optimizer = tf.train.RMSPropOptimizer(learning_rate=decay_learning_rate).minimize(cost_reg, global_step=global_step)
 
         correct_prediction = tf.equal(y_pred_class, y_true_class_encoder)
         accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32), name="Accuracy")
-        print(accuracy.name)
-        print(x_.name)
         return (x_, y_), optimizer, accuracy, y_pred, cost, decay_learning_rate, cost_reg, keep_prob
 
 
@@ -301,7 +307,8 @@ class Network:
                 if data.shape[0] == 0:
                     continue
                 labels_mat = Network.convert_to_categorical(labels, self.num_classes)
-                feed_dict = {self.x_ : data, self.y_ : labels_mat, self.dropout_prob : self.dropout_probability}
+                feed_dict = {self.x_ : data, self.y_ : labels_mat, self.dropout_prob : self.dropout_probability,
+                                self.is_training_pc:True}
                 self.sess.run(self.train_step, feed_dict=feed_dict)
                 info += "[" + "=" * int(progress * bar_coeff) + ">" + "-" * int((total_batch_num - progress)*bar_coeff) + "] "
                 acc_b, cost_b, cost_rb = self.sess.run([self.accuracy, self.cost, self.cost_r], feed_dict=feed_dict)
@@ -355,7 +362,7 @@ class Network:
         data = np.array(data) / 255.0
         print("Validation accuracy: {0:.4%}".format(self.sess.run(self.accuracy, 
                                                     feed_dict={self.x_:data, self.y_:labels_mat, 
-                                                    self.dropout_prob:1.})))
+                                                    self.dropout_prob:1., self.is_training_pc:False})))
 
     def test_network(self):
         (x_, y_), _, accuracy, y_pred, _ , dcl, _, dropout_prob = self.build_graph(is_training=False)
@@ -370,43 +377,62 @@ class Network:
         # y_ = graph.get_tensor_by_name("y-labels:0")
         # y_pred = graph.get_tensor_by_name("y-predictions:0")
         # accuracy = graph.get_tensor_by_name("Accuracy:0")
+        print("Variables:")
+        for i in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES):
+            print(i.name)
         (data, labels) = Network.getImagesLabels(self.img_size, self.testImagePaths)
+        test_avg = graph.get_tensor_by_name("ConvLayer2/ConvLayer2/ConvLayer2_2/ConvLayer2/moments/normalize/mean/ExponentialMovingAverage:0")
+        print(test_avg.eval(session=sess))
         # labels_mat = Network.convert_to_categorical(labels, self.num_classes)
         # acc, yp = sess.run([accuracy, y_pred], feed_dict={x_:data, y_:labels_mat, dropout_prob:1})
         test_image_counter = 0
         acc_total = 0
-        if labels.shape[0] > 50:
-            for (start, end) in zip(range(0, labels.shape[0], 50), 
-                                    range(50, labels.shape[0], 50)):
-                batch_data = data[start:end]
-                batch_labels = labels[start:end]
-                batch_labels_mat = Network.convert_to_categorical(batch_labels, self.num_classes)
-                acc, yp = sess.run([accuracy, y_pred], feed_dict={x_:batch_data, y_:batch_labels_mat, 
-                                                            dropout_prob:1.})
-                print("Test ex {0}-{1}: {2:1.4f}".format(start, end, acc))
-                test_image_counter += 50
-                acc_total += acc
-            batch_data = data[test_image_counter:]
-            batch_labels = labels[test_image_counter:]
-            batch_labels_mat = Network.convert_to_categorical(batch_labels, self.num_classes)
-            acc, yp = sess.run([accuracy, y_pred], feed_dict={x_:batch_data, y_:batch_labels_mat, 
-                                                            dropout_prob:1.})
-            acc_avg = acc_total / (labels.shape[0]/50)
-            print("Average accuracy: {0:.4f}".format(acc_avg))
-
+        test_batch_size = 150
+        # if labels.shape[0] > test_batch_size:
+        #     for (start, end) in zip(range(0, labels.shape[0]+1, test_batch_size), 
+        #                             range(test_batch_size, labels.shape[0]+1, test_batch_size)):
+        #         batch_data = data[start:end]
+        #         batch_labels = labels[start:end]
+        #         batch_labels_mat = Network.convert_to_categorical(batch_labels, self.num_classes)
+        #         acc, yp = sess.run([accuracy, y_pred], feed_dict={x_:batch_data, y_:batch_labels_mat, 
+        #                                                     dropout_prob:1., self.is_training_pc:False})
+        #         print("Test ex {0}-{1}: {2:1.4f}".format(start, end, acc))
+        #         test_image_counter += test_batch_size
+        #         acc_total += acc
+        #     batch_data = data[test_image_counter:]
+        #     batch_labels = labels[test_image_counter:]
+        #     batch_labels_mat = Network.convert_to_categorical(batch_labels, self.num_classes)
+        #     acc, yp = sess.run([accuracy, y_pred], feed_dict={x_:batch_data, y_:batch_labels_mat, 
+        #                                                     dropout_prob:1., self.is_training_pc:False})
+        #     acc_avg = acc_total / (labels.shape[0] // test_batch_size)
+        #     print("Average accuracy: {0:.4f}".format(acc_avg))
+        true_counter = 0
+        info = "."
+        counter = 0
         for imagePath in self.testImagePaths:
             image_orig = cv2.imread(imagePath)
             image = cv2.resize(image_orig, dsize=(self.img_size, self.img_size))
+            image = image / 255.
             image = np.expand_dims(image, axis=0)
-            result = sess.run(y_pred, feed_dict={x_:image, dropout_prob:1})
+            result = sess.run(y_pred, feed_dict={x_:image, dropout_prob:1, self.is_training_pc:False})
+            label_str = imagePath.split(os.path.sep)[-1].split(".")[0]
+            result_label = ""
+            if counter % 50 == 0:
+                info += "."
+            counter += 1
+            print(info, end="\r")
             if result[0,0] > result[0,1]:
-                print("Cat")
+                cv2.imshow('Cat', image_orig)
+                result_label = "cat"
             else:
-                print("Dog")
+                cv2.imshow('Dog', image_orig)
+                result_label = "dog"
+            if result_label == label_str.lower():
+                true_counter += 1
             print("Probs: {0}".format(result))
-            cv2.imshow('image', image_orig)
             k = cv2.waitKey(0) & 0xFF
             cv2.destroyAllWindows()
+        print("\nAcc: {0:0.5f}".format(true_counter/labels.shape[0]))
         print(result.shape)
 
     def get_fans(shape):
@@ -432,26 +458,62 @@ class Network:
 
 
     # if isconv is true axes=[0,1,2] is applied to tf.nn.moments for convolutional layer, otherwise [0] 
-    def batch_norm_wrapper(inputs, scope, is_training, isconv, decay=0.999):
+    def batch_norm_wrapper(self, inputs, scope, is_training, isconv, decay=0.999):
         with tf.variable_scope(scope):
-            gamma = tf.Variable(tf.ones([inputs.get_shape()[-1]]), name="gamma")
-            beta = tf.Variable(tf.zeros([inputs.get_shape()[-1]]), name="beta")
-            pop_mean = tf.Variable(tf.zeros([inputs.get_shape()[-1]]), name="pop_mean", trainable=False)
-            pop_var = tf.Variable(tf.ones([inputs.get_shape()[-1]]), name="pop_var", trainable=False)
-            epsilon = 1e-4
-            if is_training:
-                if isconv:
-                    batch_mean, batch_var = tf.nn.moments(inputs, axes=[0,1,2])
-                else:
-                    batch_mean, batch_var = tf.nn.moments(inputs, axes=[0])
-                train_mean = tf.assign(pop_mean, pop_mean * decay + batch_mean * (1 - decay))
-                train_var = tf.assign(pop_var, pop_var * decay + batch_var * (1 - decay))
-                with tf.control_dependencies([train_mean, train_var]):
-                    print("Giving training mean, var to BN")
-                    return tf.nn.batch_normalization(inputs, batch_mean, batch_var, beta, gamma, epsilon, name="BN")
-            else:
-                print("Giving pop_mean mean, var to BN")
-                return tf.nn.batch_normalization(inputs, pop_mean, pop_var, beta, gamma, epsilon, name="PopBN")
+            epsilon = 1e-3
+            shape = inputs.get_shape().as_list()
+            # gamma: trainable scale factor
+            gamma = tf.get_variable("gamma", shape[-1], initializer=tf.constant_initializer(1.0), 
+                                        trainable=True)
+            # beta: trainable shift value
+            beta = tf.get_variable("beta", shape[-1], initializer=tf.constant_initializer(0.0),
+                                        trainable=True)
+            batch_mean, batch_var = tf.nn.moments(inputs, list(range(len(shape) - 1)))
+            ema = tf.train.ExponentialMovingAverage(decay=0.7)
+
+            def mean_var_with_update():
+                ema_apply_op = ema.apply([batch_mean, batch_var])
+                with tf.control_dependencies([ema_apply_op]):
+                    return tf.identity(batch_mean), tf.identity(batch_var)
+            mean, var = tf.cond(self.is_training_pc, mean_var_with_update, 
+                                    lambda : (ema.average(batch_mean), ema.average(batch_var)))
+            return tf.nn.batch_normalization(inputs, mean, var, beta, gamma, epsilon)
+
+            # if is_training:
+            #     avg, var = tf.nn.moments(inputs, list(range(len(shape) - 1)) )
+            #     update_moving_avg = moving_avg.assign(moving_avg * decay + avg * (1 - decay))
+            #     update_moving_var = moving_var.assign(moving_var * decay + var * (1 - decay))
+            #     control_inputs = [update_moving_avg, update_moving_var]
+            # else:
+            #     avg = moving_avg
+            #     var = moving_var
+            #     control_inputs = []
+            # with tf.control_dependencies(control_inputs):
+            #     return tf.nn.batch_normalization(inputs, avg, var, offset=beta, scale=gamma,
+            #         variance_epsilon=epsilon)
+
+
+        # return tf.contrib.layers.batch_norm(inputs, center=True, scale=True, is_training=is_training,
+        #                                         scope=scope)
+        # with tf.variable_scope(scope, reuse=True):
+        #     gamma = tf.Variable(tf.ones([inputs.get_shape()[-1]]), name="gamma")
+        #     beta = tf.Variable(tf.zeros([inputs.get_shape()[-1]]), name="beta")
+        #     pop_mean = tf.Variable(tf.zeros([inputs.get_shape()[-1]]), name="pop_mean", trainable=False)
+        #     pop_var = tf.Variable(tf.ones([inputs.get_shape()[-1]]), name="pop_var", trainable=False)
+        #     epsilon = 1e-4
+        #     if is_training:
+        #         if isconv:
+        #             batch_mean, batch_var = tf.nn.moments(inputs, axes=[0,1,2])
+        #         else:
+        #             batch_mean, batch_var = tf.nn.moments(inputs, axes=[0])
+        #         train_mean = tf.assign(pop_mean, pop_mean * decay + batch_mean * (1 - decay))
+        #         train_var = tf.assign(pop_var, pop_var * decay + batch_var * (1 - decay))
+        #         with tf.control_dependencies([train_mean, train_var]):
+        #             print("Giving training mean, var to BN")
+        #             return tf.nn.batch_normalization(inputs, batch_mean, batch_var, beta, gamma, epsilon, name="BN")
+        #     else:
+        #         print("Giving pop_mean mean, var to BN")
+        #         return tf.nn.batch_normalization(inputs, pop_mean, pop_var, beta, gamma, epsilon, name="PopBN")
 
 
     def flatten_layer(layer, scope):
@@ -484,13 +546,15 @@ if __name__ == '__main__':
     network = Network(path_dict)
     
     is_training = 1
+    network.is_training = 1
     args = vars(network.ap.parse_args())
     if args["istraining"] != None:
         is_training = args["istraining"]
     if is_training:
         print("Starting training..")
-        network.train_network(contd=True)
+        network.train_network(contd=False)
     else:
+        network.is_training = 0
         print("Starting testing..")
         network.test_network()
 # print("Start time: ", datetime.datetime.now().time())
