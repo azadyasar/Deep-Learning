@@ -219,7 +219,7 @@ class Network:
         layer_conv5, weights = self.new_conv_layer(input=layer_conv4, config={"num_input_channels":self.num_filters4, 
                                               "filter_size":self.filter_size,"num_filters":self.num_filters5, 
                                               "scope":"ConvLayer5", "init_method":"normal", 
-                                              "is_training":is_training}, use_pooling=False)
+                                              "is_training":is_training}, use_pooling=True)
         print("Constructed ", layer_conv5)
 
         layer_conv6, weights = self.new_conv_layer(input=layer_conv5, config={"num_input_channels":self.num_filters5, 

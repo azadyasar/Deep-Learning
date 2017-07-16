@@ -527,7 +527,7 @@ if __name__ == '__main__':
         is_training = args["istraining"]
     if is_training:
         print("Starting training..")
-        network.train_network(contd=True)
+        network.train_network(contd=False)
     else:
         network.is_training = 0
         print("Starting testing..")
