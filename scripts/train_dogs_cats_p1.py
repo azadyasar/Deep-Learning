@@ -15,9 +15,9 @@ import pylab
 ## Paths
 
 log_path = "/tmp/tensorflow/log/"
-path_to_train_images = "/home/azad/Documents/WorkSpaces/Python_WS/Neural_Networks/Neural_Networks/datasets/dogs_cats/train/"
-path_to_test_images = "/home/azad/Documents/WorkSpaces/Python_WS/Neural_Networks/Neural_Networks/datasets/dogs_cats/test"
-path_to_models = "/home/azad/Documents/WorkSpaces/Python_WS/Neural_Networks/Neural_Networks/datasets/dogs_cats/models/"
+path_to_train_images = "/home/ec2-user/data/train/"
+path_to_test_images = "/home/ec2-user/data/test"
+path_to_models = "/home/ec2-user/models/"
 
 ## TODO Convert network configurations into a dict. Integrate batch normalization into the network
 
@@ -277,9 +277,7 @@ class Network:
         decay_learning_rate = tf.train.exponential_decay(self.learning_rate, global_step,
                                                     125, 0.96, staircase=False)
 
-        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-        with tf.control_dependencies(update_ops):
-            optimizer = tf.train.RMSPropOptimizer(learning_rate=decay_learning_rate).minimize(cost_reg, global_step=global_step)
+        optimizer = tf.train.RMSPropOptimizer(learning_rate=decay_learning_rate).minimize(cost_reg, global_step=global_step)
 
         correct_prediction = tf.equal(y_pred_class, y_true_class_encoder)
         accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32), name="Accuracy")
@@ -313,19 +311,19 @@ class Network:
                 self.sess.run(self.train_step, feed_dict=feed_dict)
                 info += "[" + "=" * int(progress * bar_coeff) + ">" + "-" * int((total_batch_num - progress)*bar_coeff) + "] "
                 acc_b, cost_b, cost_rb = self.sess.run([self.accuracy, self.cost, self.cost_r], feed_dict=feed_dict)
-                acc_hist.append(acc_b)
+                acc_his.append(acc_b)
                 cost_his.append(cost_b)
                 acc_over_batch += acc_b
                 cost_over_batch += cost_b
                 if end >= len(self.trainImagePaths)-self.batch_size:
                     acc_over_batch /= total_batch_num
                     cost_over_batch /= total_batch_num
-                    info += "(Overall) Acc: {0:2.4%}".format(acc_over_batch)
+                    info += "(Overall) Acc: {0:2.2%}".format(acc_over_batch)
                     info += ", Cost: {0:2.4f}".format(cost_over_batch)
                     info += " " * 6
                     print(info)
                 else:
-                    info += "Acc: {0:2.4%}".format(acc_b)
+                    info += "Acc: {0:2.2%}".format(acc_b)
                     info += ", Cost: {0:2.4f}".format(cost_b)
                     info += ", w/ reg: {0:2.4f}".format(cost_rb)
                     print(info, end="\r")
@@ -369,11 +367,11 @@ class Network:
                 batch_data = data[start:end]
                 batch_labels = labels[start:end]
                 batch_labels_mat = Network.convert_to_categorical(batch_labels, self.num_classes)
-                acc = sess.run(self.accuracy, feed_dict={self.x_:batch_data, self.y_:batch_labels_mat,
+                acc = self.sess.run(self.accuracy, feed_dict={self.x_:batch_data, self.y_:batch_labels_mat,
                                                             self.dropout_prob:1., self.is_training_pc:False})
                 acc_total += acc
             acc_avg = acc_total / (labels.shape[0] // self.batch_size)
-            print("Validation accuracy: {0:.4%".format(acc_avg))
+            print("Validation accuracy: {0:.4}%".format(acc_avg))
         else:
             labels_mat = Network.convert_to_categorical(labels, self.num_classes)
             print("Validation accuracy: {0:.4%}".format(self.sess.run(self.accuracy, 
