@@ -15,9 +15,9 @@ import pylab
 ## Paths
 
 log_path = "/tmp/tensorflow/log/"
-path_to_train_images = "/home/ec2-user/data/train/"
-path_to_test_images = "/home/ec2-user/data/test"
-path_to_models = "/home/ec2-user/models/"
+path_to_train_images = "/home/azad/Documents/WorkSpaces/Python_WS/Neural_Networks/Neural_Networks/datasets/dogs_cats/train/"
+path_to_test_images = "/home/azad/Documents/WorkSpaces/Python_WS/Neural_Networks/Neural_Networks/datasets/dogs_cats/test"
+path_to_models = "/home/azad/Documents/WorkSpaces/Python_WS/Neural_Networks/Neural_Networks/datasets/dogs_cats/models/"
 
 ## TODO Convert network configurations into a dict. Integrate batch normalization into the network
 
@@ -296,6 +296,7 @@ class Network:
             start_time = time.time()
             total_batch_num = int(len(self.trainImagePaths) / self.batch_size)
             bar_coeff =  21./total_batch_num
+            # Average accuracy and cost of epoch across all batches
             acc_over_batch = 0.
             cost_over_batch = 0.
             for start, end in zip(range(0, len(self.trainImagePaths), self.batch_size), 
@@ -312,6 +313,8 @@ class Network:
                 self.sess.run(self.train_step, feed_dict=feed_dict)
                 info += "[" + "=" * int(progress * bar_coeff) + ">" + "-" * int((total_batch_num - progress)*bar_coeff) + "] "
                 acc_b, cost_b, cost_rb = self.sess.run([self.accuracy, self.cost, self.cost_r], feed_dict=feed_dict)
+                acc_hist.append(acc_b)
+                cost_his.append(cost_b)
                 acc_over_batch += acc_b
                 cost_over_batch += cost_b
                 if end >= len(self.trainImagePaths)-self.batch_size:
@@ -328,24 +331,24 @@ class Network:
                     print(info, end="\r")
             saver = tf.train.Saver()
             saver.save(self.sess, self.path_to_models)
-            acc_his.append(acc_over_batch)
-            cost_his.append(cost_over_batch)
             print("Learning rate: {0}".format(self.sess.run(self.dcl)))
             end_time = time.time()
             time_diff = end_time - start_time
             print("Dur: {0}".format(timedelta(seconds=time_diff)))
             self.validation_accuracy()
-        plt.figure(1)
-        plt.subplot(121)
-        plt.plot(acc_his, 'g-', label="Accuracy")
-        plt.xlabel("Training steps")
-        plt.legend(loc="lower right")
-        plt.subplot(122)
-        plt.plot(cost_his, 'r-', label="Cost")
-        plt.xlabel("Training steps")
-        plt.legend(loc="upper right")
-        pylab.savefig("progress_cats_dogs.png")
-
+            plt.figure(1)
+            plt.subplot(121)
+            plt.plot(acc_his, 'g-', label="Accuracy")
+            plt.xlabel("Training steps")
+            plt.legend(loc="lower right")
+            plt.subplot(122)
+            plt.plot(cost_his, 'r-', label="Cost")
+            plt.xlabel("Training steps")
+            plt.legend(loc="upper right")
+            if self.use_batchnorm:
+                pylab.savefig("progress_cats_dogs_BN.png")
+            else:
+                pylab.savefig("progress_cats_dogs.png")
 
     def validation_accuracy(self):
         data = []
@@ -401,24 +404,24 @@ class Network:
         test_image_counter = 0
         acc_total = 0
         test_batch_size = 150
-        # if labels.shape[0] > test_batch_size:
-        #     for (start, end) in zip(range(0, labels.shape[0]+1, test_batch_size), 
-        #                             range(test_batch_size, labels.shape[0]+1, test_batch_size)):
-        #         batch_data = data[start:end]
-        #         batch_labels = labels[start:end]
-        #         batch_labels_mat = Network.convert_to_categorical(batch_labels, self.num_classes)
-        #         acc, yp = sess.run([accuracy, y_pred], feed_dict={x_:batch_data, y_:batch_labels_mat, 
-        #                                                     dropout_prob:1., self.is_training_pc:False})
-        #         print("Test ex {0}-{1}: {2:1.4f}".format(start, end, acc))
-        #         test_image_counter += test_batch_size
-        #         acc_total += acc
-        #     batch_data = data[test_image_counter:]
-        #     batch_labels = labels[test_image_counter:]
-        #     batch_labels_mat = Network.convert_to_categorical(batch_labels, self.num_classes)
-        #     acc, yp = sess.run([accuracy, y_pred], feed_dict={x_:batch_data, y_:batch_labels_mat, 
-        #                                                     dropout_prob:1., self.is_training_pc:False})
-        #     acc_avg = acc_total / (labels.shape[0] // test_batch_size)
-        #     print("Average accuracy: {0:.4f}".format(acc_avg))
+        if labels.shape[0] > test_batch_size:
+            for (start, end) in zip(range(0, labels.shape[0]+1, test_batch_size), 
+                                    range(test_batch_size, labels.shape[0]+1, test_batch_size)):
+                batch_data = data[start:end]
+                batch_labels = labels[start:end]
+                batch_labels_mat = Network.convert_to_categorical(batch_labels, self.num_classes)
+                acc, yp = sess.run([accuracy, y_pred], feed_dict={x_:batch_data, y_:batch_labels_mat, 
+                                                            dropout_prob:1., self.is_training_pc:False})
+                print("Test ex {0}-{1}: {2:1.4f}".format(start, end, acc))
+                test_image_counter += test_batch_size
+                acc_total += acc
+            batch_data = data[test_image_counter:]
+            batch_labels = labels[test_image_counter:]
+            batch_labels_mat = Network.convert_to_categorical(batch_labels, self.num_classes)
+            acc, yp = sess.run([accuracy, y_pred], feed_dict={x_:batch_data, y_:batch_labels_mat, 
+                                                            dropout_prob:1., self.is_training_pc:False})
+            acc_avg = acc_total / (labels.shape[0] // test_batch_size)
+            print("Average accuracy: {0:.4f}".format(acc_avg))
         true_counter = 0
         info = "."
         counter = 0

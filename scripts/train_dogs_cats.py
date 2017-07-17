@@ -271,6 +271,7 @@ class Network:
             start_time = time.time()
             total_batch_num = int(len(self.trainImagePaths) / self.batch_size)
             bar_coeff =  21./total_batch_num
+            # Average accuracy and cost of epoch across all batches
             acc_over_batch = 0.
             cost_over_batch = 0.
             for start, end in zip(range(0, len(self.trainImagePaths), self.batch_size), 
@@ -287,6 +288,8 @@ class Network:
                 self.sess.run(self.train_step, feed_dict=feed_dict)
                 info += "[" + "=" * int(progress * bar_coeff) + ">" + "-" * int((total_batch_num - progress)*bar_coeff) + "] "
                 acc_b, cost_b, cost_rb = self.sess.run([self.accuracy, self.cost, self.cost_r], feed_dict=feed_dict)
+                acc_hist.append(acc_b)
+                cost_his.append(cost_b)
                 acc_over_batch += acc_b
                 cost_over_batch += cost_b
                 if end >= len(self.trainImagePaths)-self.batch_size:
@@ -303,23 +306,24 @@ class Network:
                     print(info, end="\r")
             saver = tf.train.Saver()
             saver.save(self.sess, self.path_to_models)
-            acc_his.append(acc_over_batch)
-            cost_his.append(cost_over_batch)
             print("Learning rate: {0}".format(self.sess.run(self.dcl)))
             end_time = time.time()
             time_diff = end_time - start_time
             print("Dur: {0}".format(timedelta(seconds=time_diff)))
             self.validation_accuracy()
-        plt.figure(1)
-        plt.subplot(121)
-        plt.plot(acc_his, 'g-', label="Accuracy")
-        plt.xlabel("Training steps")
-        plt.legend(loc="lower right")
-        plt.subplot(122)
-        plt.plot(cost_his, 'r-', label="Cost")
-        plt.xlabel("Training steps")
-        plt.legend(loc="upper right")
-        pylab.savefig("progress_cats_dogs.png")
+            plt.figure(1)
+            plt.subplot(121)
+            plt.plot(acc_his, 'g-', label="Accuracy")
+            plt.xlabel("Training steps")
+            plt.legend(loc="lower right")
+            plt.subplot(122)
+            plt.plot(cost_his, 'r-', label="Cost")
+            plt.xlabel("Training steps")
+            plt.legend(loc="upper right")
+            if self.use_batchnorm:
+                pylab.savefig("progress_cats_dogs_BN.png")
+            else:
+                pylab.savefig("progress_cats_dogs.png")
 
 
     def validation_accuracy(self):
