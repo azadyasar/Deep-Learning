@@ -123,7 +123,7 @@ class Network:
             if self.use_batchnorm is True:
                 print("Applying BN to ", config["scope"])
                 layer = self.batch_norm_wrapper(inputs=layer, scope=config["scope"], 
-                                            is_training=config["is_training"], isconv=True)
+                                            is_training=config["is_training"])
 
             layer = tf.nn.relu(layer)
             if use_pooling:
@@ -141,7 +141,7 @@ class Network:
             if self.use_batchnorm is True:
                 print("Applying BN to ", config["scope"])
                 layer = self.batch_norm_wrapper(inputs=layer, scope=config["scope"], 
-                                    is_training=config["is_training"], isconv=False)
+                                    is_training=config["is_training"])
             if use_relu:
                 layer = tf.nn.relu(layer)
         return layer, weights
@@ -437,7 +437,7 @@ class Network:
 
 
     # if isconv is true axes=[0,1,2] is applied to tf.nn.moments for convolutional layer, otherwise [0] 
-    def batch_norm_wrapper(self, inputs, scope, is_training, isconv, decay=0.999):
+    def batch_norm_wrapper(self, inputs, scope, is_training, decay=0.9):
         with tf.variable_scope(scope):
             epsilon = 1e-3
             shape = inputs.get_shape().as_list()
@@ -448,12 +448,13 @@ class Network:
             beta = tf.get_variable("beta", shape[-1], initializer=tf.constant_initializer(0.0),
                                         trainable=True)
             batch_mean, batch_var = tf.nn.moments(inputs, list(range(len(shape) - 1)))
-            ema = tf.train.ExponentialMovingAverage(decay=0.7)
+            ema = tf.train.ExponentialMovingAverage(decay=decay)
 
             def mean_var_with_update():
                 ema_apply_op = ema.apply([batch_mean, batch_var])
                 with tf.control_dependencies([ema_apply_op]):
                     return tf.identity(batch_mean), tf.identity(batch_var)
+                    
             mean, var = tf.cond(self.is_training_pc, mean_var_with_update, 
                                     lambda : (ema.average(batch_mean), ema.average(batch_var)))
             return tf.nn.batch_normalization(inputs, mean, var, beta, gamma, epsilon)
