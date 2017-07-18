@@ -15,9 +15,9 @@ import pylab
 ## Paths
 
 log_path = "/tmp/tensorflow/log/"
-path_to_train_images = "/Users/ay/Documents/WorkSpace/Python_Workspace/Neural_Networks/datasets/dogs_cats/train/"
-path_to_test_images = "/Users/ay/Documents/WorkSpace/Python_Workspace/Neural_Networks/datasets/dogs_cats/test"
-path_to_models = "/Users/ay/Documents/WorkSpace/Python_Workspace/Neural_Networks/datasets/dogs_cats/models/"
+path_to_train_images = "/home/ec2-user/data/train/"
+path_to_test_images = "/home/ec2-user/data/test"
+path_to_models = "/home/ec2-user/models/"
 
 ## TODO Convert network configurations into a dict. Integrate batch normalization into the network
 
@@ -288,7 +288,7 @@ class Network:
                 self.sess.run(self.train_step, feed_dict=feed_dict)
                 info += "[" + "=" * int(progress * bar_coeff) + ">" + "-" * int((total_batch_num - progress)*bar_coeff) + "] "
                 acc_b, cost_b, cost_rb = self.sess.run([self.accuracy, self.cost, self.cost_r], feed_dict=feed_dict)
-                acc_hist.append(acc_b)
+                acc_his.append(acc_b)
                 cost_his.append(cost_b)
                 acc_over_batch += acc_b
                 cost_over_batch += cost_b
@@ -337,11 +337,24 @@ class Network:
             labels.append(label)
         le = LabelEncoder()
         labels = le.fit_transform(labels)
-        labels_mat = Network.convert_to_categorical(labels, self.num_classes)
         data = np.array(data) / 255.0
-        print("Validation accuracy: {0:.4%}".format(self.sess.run(self.accuracy, 
-                                                    feed_dict={self.x_:data, self.y_:labels_mat, 
-                                                    self.dropout_prob:1., self.is_training_pc:False})))
+        if labels.shape[0] > self.batch_size:
+            acc_total = 0
+            for (start, end) in zip(range(0, labels.shape[0]+1, self.batch_size),
+                                        range(self.batch_size, labels.shape[0]+1, self.batch_size)):
+                batch_data = data[start:end]
+                batch_labels = labels[start:end]
+                batch_labels_mat = Network.convert_to_categorical(batch_labels, self.num_classes)
+                acc = self.sess.run(self.accuracy, feed_dict={self.x_:batch_data, self.y_:batch_labels_mat,
+                                                            self.dropout_prob:1., self.is_training_pc:False})
+                acc_total += acc
+            acc_avg = acc_total / (labels.shape[0] // self.batch_size)
+            print("Validation accuracy: {0:.4}%".format(acc_avg))
+        else:
+            labels_mat = Network.convert_to_categorical(labels, self.num_classes)
+            print("Validation accuracy: {0:.4%}".format(self.sess.run(self.accuracy, 
+                                                        feed_dict={self.x_:data, self.y_:labels_mat, 
+                                                        self.dropout_prob:1., self.is_training_pc:False})))
 
     def test_network(self):
         (x_, y_), _, accuracy, y_pred, _ , dcl, _, dropout_prob = self.build_graph(is_training=False)
